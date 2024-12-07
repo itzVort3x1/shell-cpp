@@ -15,8 +15,20 @@ int main() {
     string input;
     getline(cin, input);
 
-    if(input == "exit"){
-      exit(0);
+    size_t spacePos = input.find(' ');
+    string command;
+    string arguments;
+
+
+    if(spacePos != string::npos){
+      command = input.substr(0, spacePos);
+      arguments = input.substr(spacePos + 1);
+    }else {
+      command = input;
+    }
+
+    if(command == "exit"){
+      return stoi(arguments);
     }
 
     cout << input + ":" << " command not found";
