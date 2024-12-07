@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sys/wait.h>hell
 using namespace std;
 
 int main() {
@@ -13,6 +14,10 @@ int main() {
     cout << "$ ";
     string input;
     getline(cin, input);
+
+    if(input == "exit"){
+      exit(0);
+    }
 
     cout << input + ":" << " command not found";
     
