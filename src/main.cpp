@@ -43,9 +43,12 @@ int main() {
         }
       }
       return exitCode;
+    }else if(command == "echo"){
+      cout << arguments << endl;
+    }else {
+      cerr << command + ":" << " command not found" << endl;
     }
 
-    cerr << command + ":" << " command not found" << endl;
 
   }
 
