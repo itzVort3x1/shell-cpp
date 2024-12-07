@@ -7,12 +7,17 @@ int main() {
   std::cerr << std::unitbuf;
 
   // Uncomment this block to pass the first stage
-  cout << "$ ";
-  //
-  string input;
-  getline(cin, input);
 
-  cout << input + ":" << " command not found";
+  while(true){
+
+    cout << "$ ";
+    string input;
+    getline(cin, input);
+
+    cout << input + ":" << " command not found";
+    
+    cout << endl;
+  }
 
   cout << endl;
 }
