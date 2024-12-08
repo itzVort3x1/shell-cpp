@@ -56,8 +56,7 @@ int main() {
       if (shellBuiltins.find(arguments) != shellBuiltins.end()) {
         cout << arguments << " is a shell builtin" << endl;
       } else {
-        cout << "testing: " << arguments << endl;
-        cerr << command << ": not found" << endl;
+        cerr << arguments << ": not found" << endl;
       }
     } else {
       cerr << command << ": command not found" << endl;
