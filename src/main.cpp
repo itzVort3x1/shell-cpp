@@ -28,7 +28,7 @@ void searchBuiltIn(const string &filename) {
     string foundPath;
 
     // Check if the command is a shell builtin
-    if (SHELLBUILTINS.find(filename) != SHELLBUILTINS.end()) {
+    if (filename == "echo") {
         cout << filename << " is a shell builtin" << endl;
     }
 
