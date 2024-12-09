@@ -29,7 +29,8 @@ void searchBuiltIn(const string &filename) {
 
     // Check if the command is a shell builtin
     if (filename == "echo") {
-        cout << filename << " is a shell builtin" << endl;
+      cout << filename << " is a shell builtin" << endl;
+      return;
     }
 
     // Get directories from PATH environment variable
