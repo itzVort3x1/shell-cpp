@@ -20,6 +20,8 @@ void searchBuiltIn(string &args){
     cout << args << " is " << binFullPath << endl;
   }else if(stat(localSearchPath, &sb) == 0){
     cout << args << " is " << localSearchPath << endl;
+  }else {
+    cerr << args << ": not found" << endl;
   }
 }
 
@@ -69,12 +71,7 @@ int main() {
         continue;
       }
 
-      // Check if the argument is a shell builtin
-      if (SHELLBUILTINS.find(arguments) != SHELLBUILTINS.end()) {
-        searchBuiltIn(arguments);
-      } else {
-        cerr << arguments << ": not found" << endl;
-      }
+      searchBuiltIn(arguments);
     } else {
       cerr << command << ": command not found" << endl;
     }
