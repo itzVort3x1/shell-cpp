@@ -52,7 +52,7 @@ void searchBuiltIn(const string &filename) {
     // Search in prioritized directories
     for (const string &dir : searchPaths) {
         if (searchFileInDirectory(dir, filename, foundPath)) {
-            cout << filename << " is located at: " << foundPath << endl;
+            cout << filename << " is " << foundPath << endl;
             return;
         }
     }
