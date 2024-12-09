@@ -5,6 +5,7 @@
 #include <string>
 #include <dirent.h>
 #include <vector>
+#include <cstdlib>
 using namespace std;
 
 string BIN_PATH="/usr/bin/";
@@ -26,6 +27,11 @@ bool searchFileInDirectory(const string &directory, const string &filename, stri
 void searchBuiltIn(const string &filename) {
     string foundPath;
 
+    // Check if the command is a shell builtin
+    if (SHELLBUILTINS.find(filename) != SHELLBUILTINS.end()) {
+        cout << filename << " is a shell builtin" << endl;
+    }
+
     // Get directories from PATH environment variable
     const char *pathEnv = getenv("PATH");
     vector<string> searchPaths;
@@ -46,15 +52,14 @@ void searchBuiltIn(const string &filename) {
     // Search in prioritized directories
     for (const string &dir : searchPaths) {
         if (searchFileInDirectory(dir, filename, foundPath)) {
-            cout << filename << " is " << foundPath << endl;
+            cout << filename << " is located at: " << foundPath << endl;
             return;
         }
     }
 
-    // If not found in PATH, fallback to a full filesystem search
+    // If not found
     cerr << filename << ": not found" << endl;
 }
-
 
 int main() {
   // Flush after every std::cout / std::cerr
