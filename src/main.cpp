@@ -1,15 +1,32 @@
 #include <iostream>
 #include <unordered_set>
 #include <sys/wait.h>
+#include <sys/stat.h>
 using namespace std;
+
+string BIN_PATH="/usr/bin/";
+string LOCAL_PATH="/usr/local/bin/";
+unordered_set<string> SHELLBUILTINS = {"exit", "echo", "type", "abcd", "ls"};
+
+
+void searchBuiltIn(string &args){
+  string binFullPath = BIN_PATH + args;
+  string localFullPath = LOCAL_PATH + args;
+  const char *binSearchPath = binFullPath.c_str();
+  const char *localSearchPath = localFullPath.c_str();
+  struct stat sb;
+
+  if(stat(binSearchPath, &sb) == 0){
+    cout << args << " is " << binFullPath << endl;
+  }else if(stat(localSearchPath, &sb) == 0){
+    cout << args << " is " << localSearchPath << endl;
+  }
+}
 
 int main() {
   // Flush after every std::cout / std::cerr
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
-
-  // Define the set of shell builtins
-  unordered_set<string> shellBuiltins = {"exit", "echo", "type"};
 
   while (true) {
     cout << "$ ";
@@ -53,8 +70,8 @@ int main() {
       }
 
       // Check if the argument is a shell builtin
-      if (shellBuiltins.find(arguments) != shellBuiltins.end()) {
-        cout << arguments << " is a shell builtin" << endl;
+      if (SHELLBUILTINS.find(arguments) != SHELLBUILTINS.end()) {
+        searchBuiltIn(arguments);
       } else {
         cerr << arguments << ": not found" << endl;
       }
