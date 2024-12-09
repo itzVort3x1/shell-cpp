@@ -34,6 +34,9 @@ void searchBuiltIn(const string &filename) {
     }else if(filename == "exit"){
       cout << filename << " is a shell builtin" << endl;
       return;
+    }else if(filename == "type"){
+      cout << filename << " is a shell builtin" << endl;
+      return;
     }
 
     // Get directories from PATH environment variable
