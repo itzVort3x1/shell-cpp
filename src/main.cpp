@@ -92,7 +92,6 @@ int main() {
   std::cerr << std::unitbuf;
 
   string path_string = getenv("PATH");
-  cout << path_string << endl;
   vector<string> path = split_string(path_string, ':');
 
   while (true) {
