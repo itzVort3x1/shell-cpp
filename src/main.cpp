@@ -6,11 +6,29 @@
 #include <dirent.h>
 #include <vector>
 #include <cstdlib>
+#include <sstream>
+#include <fstream>
 using namespace std;
 
 string BIN_PATH="/usr/bin/";
 string LOCAL_PATH="/usr/local/bin/";
 unordered_set<string> SHELLBUILTINS = {"exit", "echo", "type", "abcd", "ls"};
+
+
+vector<string> split_string(string &s, char delimiter){
+
+  stringstream ss(s);
+  vector<string> return_vect;
+
+  string token;
+
+  while(getline(ss, token, delimiter)){
+    return_vect.push_back(token);
+  }
+
+  return return_vect;
+
+}
 
 
 bool searchFileInDirectory(const string &directory, const string &filename, string &foundPath) {
@@ -73,6 +91,10 @@ int main() {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
+  string path_string = getenv("PATH");
+  cout << path_string << endl;
+  vector<string> path = split_string(path_string, ':');
+
   while (true) {
     cout << "$ ";
     string input;
@@ -116,7 +138,19 @@ int main() {
 
       searchBuiltIn(arguments);
     } else {
-      cerr << command << ": command not found" << endl;
+      string filepath;
+      for(int i = 0; i< path.size(); i++){
+        filepath = path[i] + '/' + arguments[0];
+        ifstream file(filepath);
+
+        if(file.good()){
+          string command = "exec " + path[i] + '/' + input;
+          system(command.c_str());
+          break;
+        }else if(i == path.size() - 1){
+          cout << arguments << ": not found" << endl;
+        }
+      }
     }
   }
 
