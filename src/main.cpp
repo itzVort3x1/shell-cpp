@@ -9,11 +9,13 @@
 #include <sstream>
 #include <fstream>
 #include <unistd.h>
+#include <filesystem>
+#include <iomanip>
 
 using namespace std;
 
 // Set of predefined shell built-in commands
-unordered_set<string> SHELLBUILTINS = {"exit", "echo", "type", "abcd", "ls"};
+unordered_set<string> SHELLBUILTINS = {"exit", "echo", "type", "abcd", "ls", "pwd"};
 
 // Function to split a string by a specified delimiter
 vector<string> split_string(string &s, char delimiter) {
@@ -124,6 +126,8 @@ int main() {
             }
 
             searchBuiltIn(arguments); // Check if the command is a built-in or executable
+        } else if(command == "pwd") {
+          cout << absolute(filesystem::current_path()).string() << endl;
         } else {
             string foundPath;
             bool found = false;
