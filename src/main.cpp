@@ -130,7 +130,12 @@ int main() {
           cout << absolute(filesystem::current_path()).string() << endl;
         } else if (command == "cd") {
             try {
-                filesystem::current_path(arguments);
+                if (arguments != "~") {
+                    filesystem::current_path(arguments);
+                }else {
+                    const char *homeEnv = getenv("HOME");
+                    filesystem::current_path(homeEnv);
+                }
             }catch (exception &e) {
                 cerr << "cd: " << arguments << ": No such file or directory" << endl;
             }
