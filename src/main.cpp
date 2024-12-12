@@ -3,7 +3,6 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <string>
-#include <dirent.h>
 #include <vector>
 #include <cstdlib>
 #include <sstream>
@@ -77,6 +76,84 @@ void searchBuiltIn(const string &filename) {
     cerr << filename << ": not found" << endl; // Command not found
 }
 
+string parseArgument(const std::string &input) {
+    string result;
+    bool isSingleQuotes = false;
+    bool lastWasSpace = false;
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        char c = input[i];
+
+        if (c == '\'' && (i == 0 || input[i - 1] != '\\')) {
+            isSingleQuotes = !isSingleQuotes;
+            continue;
+        }
+
+        if (c == ' ' && !isSingleQuotes) {
+            if (!lastWasSpace) {
+                result += c;
+                lastWasSpace = true;
+            }
+        } else {
+            result += c;
+            lastWasSpace = false;
+        }
+    }
+
+    return result;
+}
+
+void printFileContents(const vector<string>& fileNames) {
+    for (const string& fileName : fileNames) {
+        ifstream file(fileName);
+        if (!file.is_open()) {
+            cerr << "Error: Unable to open file '" << fileName << "'\n";
+            continue;
+        }
+
+        string line;
+        while (getline(file, line)) {
+            cout << line;
+        }
+        file.close();
+    }
+    cout << endl;
+}
+
+// Function to parse the command input and extract file names
+vector<string> parseFileNames(const string& commandInput) {
+    vector<string> fileNames;
+    bool isSingleQuotes = false;
+    string currentFileName;
+
+    for (size_t i = 0; i < commandInput.size(); ++i) {
+        char c = commandInput[i];
+
+        if (c == '\'' && (i == 0 || commandInput[i - 1] != '\\')) {
+            isSingleQuotes = !isSingleQuotes;
+            if (!isSingleQuotes && !currentFileName.empty()) {
+                fileNames.push_back(currentFileName);
+                currentFileName.clear();
+            }
+            continue;
+        }
+
+        if (c == ' ' && !isSingleQuotes) {
+            if (!currentFileName.empty()) {
+                fileNames.push_back(currentFileName);
+                currentFileName.clear();
+            }
+        } else {
+            currentFileName += c;
+        }
+    }
+
+    if (!currentFileName.empty()) {
+        fileNames.push_back(currentFileName);
+    }
+
+    return fileNames;
+}
 // Main function
 int main() {
     std::cout << std::unitbuf; // Enable automatic flushing for cout
@@ -118,7 +195,8 @@ int main() {
             }
             return exitCode; // Exit with the specified code
         } else if (command == "echo") {
-            cout << arguments << endl; // Print arguments to stdout
+            string parsedArgument = parseArgument(arguments);// parsing the arguments
+            cout << parsedArgument << endl;
         } else if (command == "type") {
             if (arguments.empty()) {
                 cerr << "type: usage: type [command]" << endl; // Error if no arguments provided
@@ -139,6 +217,9 @@ int main() {
             }catch (exception &e) {
                 cerr << "cd: " << arguments << ": No such file or directory" << endl;
             }
+        } else if (command == "cat") {
+            vector<string> files = parseFileNames(arguments);
+            printFileContents(files);
         }else {
             string foundPath;
             bool found = false;
