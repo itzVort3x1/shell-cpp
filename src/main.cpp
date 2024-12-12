@@ -128,7 +128,13 @@ int main() {
             searchBuiltIn(arguments); // Check if the command is a built-in or executable
         } else if(command == "pwd") {
           cout << absolute(filesystem::current_path()).string() << endl;
-        } else {
+        } else if (command == "cd") {
+            try {
+                filesystem::current_path(arguments);
+            }catch (exception &e) {
+                cerr << "cd: " << arguments << ": No such file or directory" << endl;
+            }
+        }else {
             string foundPath;
             bool found = false;
             
