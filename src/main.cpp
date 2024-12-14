@@ -76,28 +76,63 @@ void searchBuiltIn(const string &filename) {
     cerr << filename << ": not found" << endl; // Command not found
 }
 
-string parseArgument(const std::string &input) {
-    string result;
-    bool isSingleQuotes = false;
-    bool lastWasSpace = false;
+std::string parseArgument(const std::string &input) {
+    std::string result;
+    std::string temp;
+    bool isInsideQuotes = false;
+    char currentQuoteChar = '\0';
 
     for (size_t i = 0; i < input.size(); ++i) {
         char c = input[i];
 
-        if (c == '\'' && (i == 0 || input[i - 1] != '\\')) {
-            isSingleQuotes = !isSingleQuotes;
+        // Handle quoting
+        if ((c == '"' || c == '\'') && (i == 0 || input[i - 1] != '\\')) {
+            if (isInsideQuotes && c == currentQuoteChar) {
+                // End of quoted section
+                isInsideQuotes = false;
+                currentQuoteChar = '\0';
+            } else if (!isInsideQuotes) {
+                // Start of quoted section
+                isInsideQuotes = true;
+                currentQuoteChar = c;
+            } else {
+                // If the current character is a quote but does not close the quoted section,
+                // treat it as a literal
+                temp += c;
+            }
             continue;
         }
 
-        if (c == ' ' && !isSingleQuotes) {
-            if (!lastWasSpace) {
-                result += c;
-                lastWasSpace = true;
+        // Handle special cases for backslash within double quotes
+        if (c == '\\' && isInsideQuotes && currentQuoteChar == '"' && i + 1 < input.size()) {
+            char nextChar = input[i + 1];
+            if (nextChar == '\\' || nextChar == '$' || nextChar == '"' || nextChar == '\n') {
+                temp += nextChar; // Add escaped character
+                i++;              // Skip the next character
+                continue;
+            }
+        }
+
+        // Append characters outside quotes or within quotes
+        if (c == ' ' && !isInsideQuotes) {
+            if (!temp.empty()) {
+                if (!result.empty()) {
+                    result += " ";
+                }
+                result += temp;
+                temp.clear();
             }
         } else {
-            result += c;
-            lastWasSpace = false;
+            temp += c;
         }
+    }
+
+    // Append the last word
+    if (!temp.empty()) {
+        if (!result.empty()) {
+            result += " ";
+        }
+        result += temp;
     }
 
     return result;
@@ -121,26 +156,44 @@ void printFileContents(const vector<string>& fileNames) {
 }
 
 // Function to parse the command input and extract file names
-vector<string> parseFileNames(const string& commandInput) {
+vector<string> parseFileNames(const string &commandInput) {
     vector<string> fileNames;
-    bool isSingleQuotes = false;
     string currentFileName;
+    bool isInsideQuotes = false;
+    char currentQuoteChar = '\0';
 
     for (size_t i = 0; i < commandInput.size(); ++i) {
         char c = commandInput[i];
 
-        if (c == '\'' && (i == 0 || commandInput[i - 1] != '\\')) {
-            isSingleQuotes = !isSingleQuotes;
-            if (!isSingleQuotes && !currentFileName.empty()) {
-                fileNames.push_back(currentFileName);
-                currentFileName.clear();
+        // Handle quoting
+        if ((c == '"' || c == '\'') && (i == 0 || commandInput[i - 1] != '\\')) {
+            if (isInsideQuotes && c == currentQuoteChar) {
+                // End of quoted section
+                isInsideQuotes = false;
+                currentQuoteChar = '\0';
+                continue;
+            } else if (!isInsideQuotes) {
+                // Start of quoted section
+                isInsideQuotes = true;
+                currentQuoteChar = c;
+                continue;
             }
-            continue;
         }
 
-        if (c == ' ' && !isSingleQuotes) {
+        // Handle escaped characters within double quotes
+        if (c == '\\' && isInsideQuotes && currentQuoteChar == '"' && i + 1 < commandInput.size()) {
+            char nextChar = commandInput[i + 1];
+            if (nextChar == '\\' || nextChar == '$' || nextChar == '"' || nextChar == '\n') {
+                currentFileName += nextChar; // Add escaped character
+                i++;                         // Skip the next character
+                continue;
+            }
+        }
+
+        // Append character or handle space outside of quotes
+        if (c == ' ' && !isInsideQuotes) {
             if (!currentFileName.empty()) {
-                fileNames.push_back(currentFileName);
+                fileNames.push_back(currentFileName); // Add completed filename
                 currentFileName.clear();
             }
         } else {
@@ -148,6 +201,7 @@ vector<string> parseFileNames(const string& commandInput) {
         }
     }
 
+    // Add the last filename
     if (!currentFileName.empty()) {
         fileNames.push_back(currentFileName);
     }
