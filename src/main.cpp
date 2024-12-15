@@ -76,17 +76,45 @@ void searchBuiltIn(const string &filename) {
     cerr << filename << ": not found" << endl; // Command not found
 }
 
-std::string parseArgument(const std::string &input) {
-    std::string result;
-    std::string temp;
+string parseArgument(const string &input) {
+    string result;
+    string temp;
     bool isInsideQuotes = false;
     char currentQuoteChar = '\0';
+    bool isEscaping = false;
 
     for (size_t i = 0; i < input.size(); ++i) {
         char c = input[i];
 
-        // Handle quoting
-        if ((c == '"' || c == '\'') && (i == 0 || input[i - 1] != '\\')) {
+        if (isEscaping) {
+            // Handle escaped characters
+            temp += c;   // Add the next character literally
+            isEscaping = false;
+            continue;
+        }
+
+        if (c == '\\') {
+            // Start escaping the next character
+            if (isInsideQuotes && currentQuoteChar == '"') {
+                // In double quotes, allow escaping specific characters
+                if (i + 1 < input.size() &&
+                    (input[i + 1] == '"' || input[i + 1] == '\\' || input[i + 1] == '$' || input[i + 1] == '`')) {
+                    isEscaping = true;
+                    continue;
+                }
+            } else if (!isInsideQuotes) {
+                // Outside quotes, treat backslash as escape
+                isEscaping = true;
+                continue;
+            }
+
+            // Inside single quotes, treat backslash as literal
+            temp += c;
+            continue;
+        }
+
+        // Handle quotes
+        if ((c == '"' || c == '\'') && !isEscaping) {
             if (isInsideQuotes && c == currentQuoteChar) {
                 // End of quoted section
                 isInsideQuotes = false;
@@ -96,24 +124,13 @@ std::string parseArgument(const std::string &input) {
                 isInsideQuotes = true;
                 currentQuoteChar = c;
             } else {
-                // If the current character is a quote but does not close the quoted section,
-                // treat it as a literal
+                // Inside quotes, treat as literal
                 temp += c;
             }
             continue;
         }
 
-        // Handle special cases for backslash within double quotes
-        if (c == '\\' && isInsideQuotes && currentQuoteChar == '"' && i + 1 < input.size()) {
-            char nextChar = input[i + 1];
-            if (nextChar == '\\' || nextChar == '$' || nextChar == '"' || nextChar == '\n') {
-                temp += nextChar; // Add escaped character
-                i++;              // Skip the next character
-                continue;
-            }
-        }
-
-        // Append characters outside quotes or within quotes
+        // Outside quotes, split arguments by spaces
         if (c == ' ' && !isInsideQuotes) {
             if (!temp.empty()) {
                 if (!result.empty()) {
