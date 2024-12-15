@@ -60,15 +60,7 @@ The terminal supports the following built-in commands:
   cat file.txt
   ```
 
-### 2. **External Command Execution**
-The terminal searches for external commands in the system's `PATH` directories. If found, the command is executed with the provided arguments.
-
-Example:
-```bash
-ls -l
-```
-
-### 3. **Argument Parsing**
+### 2. **Argument Parsing**
 Supports handling of quotes, escaped characters, and spaces in arguments.
 - Double quotes (`"`) and single quotes (`'`) are handled properly.
 - Backslashes (`\`) are interpreted as escape characters.
