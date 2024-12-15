@@ -127,8 +127,6 @@ $ pwd
 /home/user
 
 $ cd /tmp
-
-$ ls -l
 ...
 
 $ type echo
