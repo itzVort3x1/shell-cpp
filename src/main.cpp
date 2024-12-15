@@ -1,334 +1,241 @@
 #include <iostream>
-#include <unordered_set>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <string>
 #include <vector>
-#include <cstdlib>
 #include <sstream>
-#include <fstream>
-#include <unistd.h>
+#include <string>
 #include <filesystem>
-#include <iomanip>
+#include <unistd.h>
+#include <format>
+#include <cstring>
 
-using namespace std;
 
-// Set of predefined shell built-in commands
-unordered_set<string> SHELLBUILTINS = {"exit", "echo", "type", "abcd", "ls", "pwd"};
+std::string get_path(std::string command) {
+  std::string path_env = std::getenv("PATH");
+  std::stringstream ss(path_env);
 
-// Function to split a string by a specified delimiter
-vector<string> split_string(string &s, char delimiter) {
-    stringstream ss(s);
-    vector<string> return_vect;
-    string token;
+  std::string path;
 
-    while (getline(ss, token, delimiter)) {
-        return_vect.push_back(token); // Add each token to the vector
+  while(!ss.eof()) {
+    getline(ss, path, ':');
+    std::string abs_path = path + '/' + command;
+
+    if (std::filesystem::exists(abs_path)) {
+      return abs_path;
     }
+  }
 
-    return return_vect;
+  return "";
 }
 
-// Function to search for a file in a directory
-bool searchFileInDirectory(const string &directory, const string &filename, string &foundPath) {
-    struct stat sb;
-    string fullPath = directory + "/" + filename;
-
-    // Check if the file exists and is a regular file
-    if (stat(fullPath.c_str(), &sb) == 0 && S_ISREG(sb.st_mode)) {
-        foundPath = fullPath;
-        return true; // File found
-    }
-    return false; // File not found
+std::vector<std::string> split_string(const std::string &inputString, char delimeter) {
+  std::stringstream ss(inputString);
+  std::vector<std::string> return_vect;
+  std::string token;
+  while(getline(ss,token, delimeter)){
+    return_vect.push_back(token);
+  }
+  return return_vect;
 }
 
-// Function to handle "type" command, checking if a command is a shell built-in or executable
-void searchBuiltIn(const string &filename) {
-    if (SHELLBUILTINS.find(filename) != SHELLBUILTINS.end()) {
-        cout << filename << " is a shell builtin" << endl; // Command is a built-in
-        return;
-    }
-
-    string foundPath;
-    const char *pathEnv = getenv("PATH"); // Get the PATH environment variable
-    vector<string> searchPaths;
-
-    if (pathEnv) {
-        string pathStr = pathEnv;
-        size_t pos = 0;
-        while ((pos = pathStr.find(':')) != string::npos) {
-            searchPaths.push_back(pathStr.substr(0, pos)); // Add each directory in PATH
-            pathStr.erase(0, pos + 1);
-        }
-        searchPaths.push_back(pathStr);
-    }
-
-    searchPaths.insert(searchPaths.begin(), {"/usr/bin", "/bin"}); // Common directories
-
-    // Search for the command in the directories
-    for (const string &dir : searchPaths) {
-        if (searchFileInDirectory(dir, filename, foundPath)) {
-            cout << filename << " is " << foundPath << endl; // Command found
-            return;
-        }
-    }
-
-    cerr << filename << ": not found" << endl; // Command not found
+void get_pwd(){
+  std::string cwd = std::filesystem::current_path();
+  std::cout << cwd << "\n";
 }
 
-string parseArgument(const string &input) {
-    string result;
-    string temp;
-    bool isInsideQuotes = false;
-    char currentQuoteChar = '\0';
-    bool isEscaping = false;
+std::string shell_parser(std::string text){
+      std::string result;
+      bool in_quotes{false};
+      bool in_single_quotes{false};
+      bool was_quotes{false};
+      char current_quote = '\0';
+      std::string temp;
 
-    for (size_t i = 0; i < input.size(); ++i) {
-        char c = input[i];
+      for (size_t i = 0; i < text.size(); i++) {
+        char c = text[i];
 
-        if (isEscaping) {
-            // Handle escaped characters
-            temp += c;   // Add the next character literally
-            isEscaping = false;
-            continue;
-        }
+        if ((c == '\"' || c == '\'') && !in_quotes) {
+          //going into a quote
+          was_quotes = true;
+          if (c == '\''){
+            in_single_quotes = true;
+          }
+          in_quotes = true;
+          current_quote = c;
+          //next itteration
+        } else if (c == current_quote && in_quotes ) {
+          //leaving the quote
+          in_quotes = false;
+          if (c == '\'' && in_single_quotes){
+            in_single_quotes = false;
+            //flipped the boolean to false in here but both ends have double quotes so it does not process the rest properly
+          }
+          current_quote = '\0';
+          if (!result.empty()) result += ' ';
+          result += temp;
+          temp.clear();
+        } else if (in_quotes) {
 
-        if (c == '\\') {
-            // Start escaping the next character
-            if (isInsideQuotes && currentQuoteChar == '"') {
-                // In double quotes, allow escaping specific characters
-                if (i + 1 < input.size() &&
-                    (input[i + 1] == '"' || input[i + 1] == '\\' || input[i + 1] == '$' || input[i + 1] == '`')) {
-                    isEscaping = true;
-                    continue;
-                }
-            } else if (!isInsideQuotes) {
-                // Outside quotes, treat backslash as escape
-                isEscaping = true;
-                continue;
-            }
+          if (c == '\\' && i + 1 < text.size() && !in_single_quotes ) {
+            //std::cout << i << ' ' << i + 1  << ' ' << text.size() ;
+            char next = text[i + 1];
 
-            // Inside single quotes, treat backslash as literal
-            temp += c;
-            continue;
-        }
-
-        // Handle quotes
-        if ((c == '"' || c == '\'') && !isEscaping) {
-            if (isInsideQuotes && c == currentQuoteChar) {
-                // End of quoted section
-                isInsideQuotes = false;
-                currentQuoteChar = '\0';
-            } else if (!isInsideQuotes) {
-                // Start of quoted section
-                isInsideQuotes = true;
-                currentQuoteChar = c;
+            if (next == '\\' || next == '"' || next == '$' || next == '\n') {
+                temp += next;
+                ++i;
             } else {
-                // Inside quotes, treat as literal
-                temp += c;
+              temp += c;
             }
-            continue;
-        }
-
-        // Outside quotes, split arguments by spaces
-        if (c == ' ' && !isInsideQuotes) {
-            if (!temp.empty()) {
-                if (!result.empty()) {
-                    result += " ";
-                }
-                result += temp;
-                temp.clear();
-            }
-        } else {
+          } else {
             temp += c;
+          }
+        } else if (!in_quotes && c == ' '){
+          continue;
+        } else {
+          if (!result.empty()) {
+            //when we are no longer in quptes, backslashes still need to be handled by being erased
+            // and the proceding character (next) should follow UNLESS it's a new line where for now we skip it
+            if(c == '\\' && i + 1 < text.size()) {
+              char next = text[i + 1];
+              if (next != '\n'){
+                result += next;
+                i++;
+              }
+            } else {
+              result += c;
+            }
+          }
         }
-    }
+      }
 
-    // Append the last word
-    if (!temp.empty()) {
+      if(!temp.empty()) {
         if (!result.empty()) {
-            result += " ";
-        }
+          result += ' ';
+          }
         result += temp;
-    }
+      }
 
-    return result;
+      if (was_quotes == false){
+        char c;
+        std::string output;
+        bool inStr{false};
+        for(size_t i = 0; i < text.size(); i++){
+          if ( text[i] == '\\' && ( i+1 ) < text.size()){
+            inStr = true;
+            output += text[++i];
+
+          } else if ( text[i] != ' ' ) {
+            inStr = true;
+            output += text[i];
+          } else if ( text[i] == ' ' && inStr) {
+            output += ' ';
+            inStr = false;
+          }
+        }
+        return output;
+      } else {
+        return result;
+      }
 }
 
-void printFileContents(const vector<string>& fileNames) {
-    for (const string& fileName : fileNames) {
-        ifstream file(fileName);
-        if (!file.is_open()) {
-            cerr << "Error: Unable to open file '" << fileName << "'\n";
-            continue;
-        }
+int main(int argc, char* argv[]) {
+  // Flush after every std::cout / std:cerr
+  std::cout << std::unitbuf;
+  std::cerr << std::unitbuf;
+  std::string path_string = getenv("PATH");
+  std::string home_string = getenv("HOME");
+  std::stringstream ss1(path_string);
+  std::vector<std::string> program_paths = split_string(path_string, ':');
 
-        string line;
-        while (getline(file, line)) {
-            cout << line;
-        }
-        file.close();
-    }
-    cout << endl;
-}
+  // Uncomment this block to pass the first stage
+  std::cout << "$ ";
+  std::string input;
 
-// Function to parse the command input and extract file names
-vector<string> parseFileNames(const string &commandInput) {
-    vector<string> fileNames;
-    string currentFileName;
-    bool isInsideQuotes = false;
-    char currentQuoteChar = '\0';
+  while(std::getline(std::cin, input)){
 
-    for (size_t i = 0; i < commandInput.size(); ++i) {
-        char c = commandInput[i];
+    int command_idx = input.find(' ');
+    std::string command = input.substr(0, command_idx);
 
-        // Handle quoting
-        if ((c == '"' || c == '\'') && (i == 0 || commandInput[i - 1] != '\\')) {
-            if (isInsideQuotes && c == currentQuoteChar) {
-                // End of quoted section
-                isInsideQuotes = false;
-                currentQuoteChar = '\0';
-                continue;
-            } else if (!isInsideQuotes) {
-                // Start of quoted section
-                isInsideQuotes = true;
-                currentQuoteChar = c;
-                continue;
-            }
-        }
-
-        // Handle escaped characters within double quotes
-        if (c == '\\' && isInsideQuotes && currentQuoteChar == '"' && i + 1 < commandInput.size()) {
-            char nextChar = commandInput[i + 1];
-            if (nextChar == '\\' || nextChar == '$' || nextChar == '"' || nextChar == '\n') {
-                currentFileName += nextChar; // Add escaped character
-                i++;                         // Skip the next character
-                continue;
-            }
-        }
-
-        // Append character or handle space outside of quotes
-        if (c == ' ' && !isInsideQuotes) {
-            if (!currentFileName.empty()) {
-                fileNames.push_back(currentFileName); // Add completed filename
-                currentFileName.clear();
-            }
+    if (input.find("echo ") == 0 ){
+      const int ECHO_LEN = 5;
+      std::string text = input.substr(ECHO_LEN);
+      std::string result = shell_parser(text);
+      std::cout << result << std::endl;
+    } else if (input.find("exit") == 0){
+      return 0;
+    } else if (command == "type") {
+      std::string validTypes = input.substr(command_idx + 1);
+      if (validTypes == "echo" || validTypes == "exit" || validTypes == "type" || validTypes == "pwd") {
+        std::cout << validTypes << " is a shell builtin" << std::endl;
+      } else {
+        std::string path = get_path(validTypes);
+        if (!path.empty()){
+          std::cout << validTypes << " is " << path << std::endl;
         } else {
-            currentFileName += c;
+          std::cout << validTypes << ": not found" << std::endl;
         }
-    }
-
-    // Add the last filename
-    if (!currentFileName.empty()) {
-        fileNames.push_back(currentFileName);
-    }
-
-    return fileNames;
-}
-// Main function
-int main() {
-    std::cout << std::unitbuf; // Enable automatic flushing for cout
-    std::cerr << std::unitbuf; // Enable automatic flushing for cerr
-
-    string path_string = getenv("PATH"); // Get PATH environment variable
-    vector<string> path = split_string(path_string, ':'); // Split PATH into directories
-
-    while (true) {
-        cout << "$ "; // Display shell prompt
-        string input;
-        getline(cin, input); // Get user input
-
-        if (input.empty()) {
-            continue; // Skip empty input
-        }
-
-        size_t spacePos = input.find(' ');
-        string command;
-        string arguments;
-
-        if (spacePos != string::npos) {
-            command = input.substr(0, spacePos); // Extract command
-            arguments = input.substr(spacePos + 1); // Extract arguments
+      }
+    } else if ( command == "pwd") {
+      get_pwd();
+    } else if ( command == "cd") {
+      std::string requested_path = input.substr(command_idx + 1);
+      if (requested_path[0] == '/') {
+        if ( std::filesystem::exists(requested_path) ) {
+          std::filesystem::current_path(requested_path);
         } else {
-            command = input;
+          std::cout << "cd: " << requested_path << ": No such file or directory" << std::endl;
+        }
+      } else if (requested_path[0] == '.') {
+          std::filesystem::path cwd = std::filesystem::current_path();
+          std::string dir = cwd / requested_path;
+          cwd = std::filesystem::canonical(dir);
+          if (chdir(cwd.c_str()) == -1)
+            std::cout << "cd: " << requested_path << ": No such file or directory" << std::endl;
+
+        } else if (requested_path[0] = '~') {
+          std::filesystem::current_path(home_string);
+        }
+      } else if( command.substr(1) == "exe") {
+        int first_quote_idx = 0;
+        int last_quote_idx = 0;
+        std::string exec_command;
+        std::string exec_arg_file;
+        for( size_t i = input.size() - 1; i > 0; i--){
+          if (input[i] == '\'' or input[i] == '"') {
+            last_quote_idx = i;
+            break;
+          }
         }
 
-        if (command == "exit") {
-            int exitCode = 0;
-            if (!arguments.empty()) {
-                try {
-                    exitCode = stoi(arguments); // Convert argument to exit code
-                } catch (std::invalid_argument &e) {
-                    cerr << "Invalid exit code. Exiting with default code 0." << endl;
-                } catch (std::out_of_range &e) {
-                    cerr << "Exit code out of range. Exiting with default code 0." << endl;
-                }
-            }
-            return exitCode; // Exit with the specified code
-        } else if (command == "echo") {
-            string parsedArgument = parseArgument(arguments);// parsing the arguments
-            cout << parsedArgument << endl;
-        } else if (command == "type") {
-            if (arguments.empty()) {
-                cerr << "type: usage: type [command]" << endl; // Error if no arguments provided
-                continue;
-            }
+        exec_command = input.substr(first_quote_idx, last_quote_idx + 1);
+        exec_arg_file = input.substr(last_quote_idx + 2);
+        std::filesystem::path file(exec_arg_file);
+        std::filesystem::path parentDir = file.parent_path();
 
-            searchBuiltIn(arguments); // Check if the command is a built-in or executable
-        } else if(command == "pwd") {
-          cout << absolute(filesystem::current_path()).string() << endl;
-        } else if (command == "cd") {
-            try {
-                if (arguments != "~") {
-                    filesystem::current_path(arguments);
-                }else {
-                    const char *homeEnv = getenv("HOME");
-                    filesystem::current_path(homeEnv);
-                }
-            }catch (exception &e) {
-                cerr << "cd: " << arguments << ": No such file or directory" << endl;
-            }
-        } else if (command == "cat") {
-            vector<string> files = parseFileNames(arguments);
-            printFileContents(files);
-        }else {
-            string foundPath;
-            bool found = false;
-            
-            // Search for the command in the PATH directories
-            for (const string &dir : path) {
-                if (searchFileInDirectory(dir, command, foundPath)) {
-                    found = true;
-                    break;
-                }
-            }
+        std::filesystem::path exec_path = parentDir / exec_command;
 
-            if (!found) {
-                cerr << command << ": not found" << endl; // Command not found
-                continue;
-            }
+        exec_path += ' ';
+        exec_path += exec_arg_file;
 
-            pid_t pid = fork(); // Fork a new process
-            if (pid == 0) { // Child process
-                vector<string> args = split_string(input, ' '); // Split input into arguments
-                vector<char *> c_args;
-
-                for (auto &arg : args) {
-                    c_args.push_back(&arg[0]); // Convert arguments to C-style strings
-                }
-                c_args.push_back(nullptr);
-
-                execvp(foundPath.c_str(), c_args.data()); // Execute the command
-                perror("execvp"); // Print error if execvp fails
-                exit(EXIT_FAILURE); // Exit child process on failure
-            } else if (pid > 0) { // Parent process
-                int status;
-                waitpid(pid, &status, 0); // Wait for the child process to complete
-            } else {
-                perror("fork"); // Print error if fork fails
-            }
+        if( std::filesystem::exists(parentDir.c_str())) {
+          std::system(exec_path.c_str());
         }
+
+
+      }
+    else {
+      std::string filepath;
+      for(int i = 0; i < program_paths.size(); i++){
+        std::string cur_program = program_paths[i];
+        std::string abs_path = cur_program + '/' + command;
+        if(std::filesystem::exists(abs_path)){
+          std::string exec_path = "exec " + cur_program + '/' + input;
+          std::system(exec_path.c_str());
+          break;
+        } else if ( i == program_paths.size() - 1) {
+          std::cout << command << ": command not found" << std::endl;
+        }
+      }
     }
-
-    return 0;
+    std::cout << "$ ";
+  }
+  exit(0);
 }
