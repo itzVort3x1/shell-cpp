@@ -96,7 +96,7 @@ Ensure you have a C++17 compatible compiler.
 1. Save the code to a file, e.g., `main.cpp`.
 2. Compile using the following command:
    ```bash
-   g++ -std=c++17 -o main main.cpp
+   g++ -std=c++17 -I../include -o main main.cpp
    ```
 
 ### Execution
@@ -168,4 +168,3 @@ This project is open-source and available for use under the MIT License.
 
 ## Author
 Sai kaustubh
-
