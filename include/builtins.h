@@ -32,6 +32,7 @@ void searchBuiltIn(const std::string &filename) {
         searchPaths.push_back(pathStr);
     }
 
+
     searchPaths.insert(searchPaths.begin(), {"/usr/bin", "/bin"}); // Common directories
 
     // Search for the command in the directories

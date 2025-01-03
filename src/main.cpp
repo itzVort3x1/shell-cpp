@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <unistd.h>
 #include <iomanip>
-#include "builtins.h"
+#include "../include/builtins.h"
 
 using namespace std;
 
@@ -74,9 +74,9 @@ int main() {
         }else {
             vector<string> parsedCommand = parseFileNames(command);
 
-            for (auto it: parsedCommand) {
-                cout << it << endl;
-            }
+            // for (auto it: parsedCommand) {
+            //     cout << it << endl;
+            // }
 
             if (!parsedCommand.empty()) {
                 string executable = parsedCommand[0];
@@ -96,10 +96,11 @@ int main() {
                     if (retCode != 0) {
                         cerr << "Error: Command failed with return code " << retCode << endl;
                     }
-                } else {
-                    cerr << "Error: The specified executable \"" << executable << "\" is not valid or does not exist." << endl;
                 }
             }
+
+            // Checking if there is any redirection
+
             string foundPath;
             bool found = false;
 

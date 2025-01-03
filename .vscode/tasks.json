@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "runBeforeStart", // Task label for pre-launch
+            "type": "shell",
+            "command": "g++ -std=c++17 -I../include -o ${workspaceFolder}/src/main ${workspaceFolder}/src/main.cpp", // Replace with your actual pre-launch command
+            "problemMatcher": []
+        },
+        {
+            "label": "runAfterEnd", // Task label for post-debug
+            "type": "shell",
+            "command": "rm ${workspaceFolder}/src/main", // Replace with your actual post-debug command
+            "problemMatcher": []
+        }
+    ]
+}
