@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <iomanip>
 #include "../include/builtins.h"
+#include "../include/redirection.h"
 
 using namespace std;
 
@@ -100,6 +101,9 @@ int main() {
             }
 
             // Checking if there is any redirection
+            for(auto str:parsedCommand){
+                cout << "testing" << str << endl;
+            }
 
             string foundPath;
             bool found = false;
