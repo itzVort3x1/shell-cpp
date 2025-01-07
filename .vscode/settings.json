@@ -2,6 +2,7 @@
     "files.associations": {
         "*.ndjson": "jsonl",
         "*.dbclient-js": "javascript",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "ostream": "cpp"
     }
 }
